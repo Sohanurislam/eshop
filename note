@@ -1,0 +1,95 @@
+
+public function addToCart(Request $request)
+{
+
+    $productIds = Cookie::get('productIds');
+
+    if(!is_null($productIds)){
+        $productIds = unserialize($productIds);
+    }
+
+    if(is_array($productIds) && (count($productIds)>0)){
+        array_push($productIds, $request->productId);
+        $data = serialize($productIds);
+    }else{
+        $data = serialize([$request->productId]);
+    }
+
+    Cookie::queue('productIds', $data , 3600*10);
+
+    return response()->json($productIds);
+}
+
+public function removeFromCart(Request $request)
+{
+    $productIds = Cookie::get('productIds');
+    $data = [];
+    if(!is_null($productIds)){
+        $productIds = unserialize($productIds);
+        if (($key = array_search($request->productId, $productIds)) !== false) {
+            unset($productIds[$key]);
+        }
+        $data = serialize($productIds);
+    }
+
+    Cookie::queue(Cookie::forget('productIds'));
+
+    Cookie::queue('productIds', $data , 3600*10);
+
+    return response()->json($productIds);
+}
+
+public function getProductsFromCart()
+{
+
+    $productIds = Cookie::get('productIds');
+    $products = [];
+    if(!is_null($productIds)){
+        $productIds = unserialize($productIds);
+        $uniqueProducts = array_unique($productIds);
+        $products = Product::whereIn('id', $uniqueProducts)->get();
+    }
+
+    return view('frontend.checkout', compact('products'));
+
+}
+
+function addToCart(id) {
+    // console.log($('meta[name="csrf-token"]').attr('content'));
+    $.ajax({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        type: "post",
+        url: '/add_to_cart',
+        data: {productId: id},
+        cache: false,
+        success: function (res) {
+            $('#addToCart'+id).html(`
+                <span type="submit" class="hub-cart phub-cart btn">
+                    <i class="fas fa-shopping-bag" aria-hidden="true"></i> Already In Cart
+                </span>
+            `);
+        },
+        error: function (xhr, status, error) {
+            console.log("An AJAX error occured: " + status + "\nError: " + error);
+        }
+    });
+
+}
+</script>
+
+//active user
+
+
+\App\Http\Middleware\LastUserActivity::class,
+
+//user.php
+public function isOnline()
+    {
+        return Cache::has('user-is-online-'.$this->id);
+    }
+
+users/index.blade
+{{ $user->isOnline() ? 'Online' : 'Offline' }}
+
